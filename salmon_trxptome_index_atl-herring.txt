@@ -1,0 +1,384 @@
+##build indexed ref transcriptome from atlantic herring transcriptome
+
+## filepath
+/home/jagill/ref_transcriptome_CH
+## job title
+transcript_index.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/ref_transcriptome_CH
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 4
+#SBATCH --mem=4G
+#SBATCH -J transcript_index
+
+module load salmon/0.8.2
+salmon index -t ch_transcripts.fa -i ch_transcripts_idx
+
+##output and filepath of trinscriptome index
+/home/jagill/ref_transcriptome_CH/ch_transcripts_idx
+
+
+##trial run quantify read counts with salmon using plate2 sample 1
+##filepath to reads
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+##filepath to indexed transcriptome
+/home/jagill/ref_transcriptome_CH/ch_transcripts_idx
+## job title
+quant_plate2_sample1.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 4
+#SBATCH --mem=4G
+#SBATCH -J quant_plate2_samp1
+
+module load salmon/0.8.2 
+salmon quant -i /home/jagill/ref_transcriptome_CH/ch_transcripts_idx -l IU -1 18048FL-09-01-01_S45_L002_R1_001_paired.fastq.gz well1_S121_L004_R1_001_paired.fastq.gz well1_S121_L005_R1_001_paired.fastq.gz well1_S121_L006_R1_001_paired.fastq.gz -2 18048FL-09-01-01_S45_L002_R2_001_paired.fastq.gz well1_S121_L004_R2_001_paired.fastq.gz well1_S121_L005_R2_001_paired.fastq.gz well1_S121_L006_R2_001_paired.fastq.gz -o out
+## finished with mapping rate [2020-01-18 18:28:01.972] [jointLog] [info] Mapping rate = 54.6802%                              
+## [2020-01-18 18:28:01.972] [jointLog] [warning] 0.0224142% of fragments were shorter than the k used to build the index (31).
+## If this fraction is too large, consider re-building the index with a smaller k.
+## The minimum read size found was 25.
+## 2020-01-18 18:28:05.190] [jointLog] [warning] NOTE: Read Lib [( 18048FL-09-01-01_S45_L002_R1_001_paired.fastq.gz, 18048FL-09-01-01_S45_L002_R2_001_paired.fastq.gz ), ( well1_S121_L004_R1_001_paired.fastq.gz, well1_S121_L004_R2_001_paired.fastq.gz ), ( well1_S121_L005_R1_001_paired.fastq.gz, well1_S121_L005_R2_001_paired.fastq.gz ), ( well1_S121_L006_R1_001_paired.fastq.gz, well1_S121_L006_R2_001_paired.fastq.gz )] :
+## Detected a *potential* strand bias > 1% in an unstranded protocol check the file: out/lib_format_counts.json for details
+
+
+
+18048FL-09-01-01_S45_L002_R1_001_paired.fastq.gz
+18048FL-09-01-01_S45_L002_R2_001_paired.fastq.gz
+well1_S121_L004_R1_001_paired.fastq.gz
+well1_S121_L004_R2_001_paired.fastq.gz
+well1_S121_L005_R1_001_paired.fastq.gz
+well1_S121_L005_R2_001_paired.fastq.gz
+well1_S121_L006_R1_001_paired.fastq.gz
+well1_S121_L006_R2_001_paired.fastq.gz
+
+
+----------------------------------------
+## transfer *annotated* atlantic herring transcriptome from downloads to farm
+scp -P 2022 /Users/jagill/Downloads/GCF_900700415.1_Ch_v2.0.2_rna.fna.gz jagill@farm.cse.ucdavis.edu:/home/jagill/ref_transcriptome_CH
+
+## build indexed ref transcriptome from atlantic herring transcriptome
+##filepath
+/home/jagill/ref_transcriptome_CH
+## job title
+transcript_index2.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/ref_transcriptome_CH
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J transcript_index
+
+module load salmon/0.8.2
+salmon index -t GCF_900700415.1_Ch_v2.0.2_rna.fna -i 2ch_transcripts_idx
+
+##output and filepath of trinscriptome index
+/home/jagill/ref_transcriptome_CH/2ch_transcripts_idx
+----------------------------------------
+##trial run quantify read counts with salmon using plate2 sample 1
+##filepath to reads
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+##filepath to indexed transcriptome
+/home/jagill/ref_transcriptome_CH/2ch_transcripts_idx
+## job title
+2quant_plate2_sample1.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J quant_plate2_samp1
+
+module load salmon/0.8.2 
+salmon quant -i /home/jagill/ref_transcriptome_CH/2ch_transcripts_idx -l IU -1 18048FL-09-01-01_S45_L002_R1_001_paired.fastq.gz well1_S121_L004_R1_001_paired.fastq.gz well1_S121_L005_R1_001_paired.fastq.gz well1_S121_L006_R1_001_paired.fastq.gz -2 18048FL-09-01-01_S45_L002_R2_001_paired.fastq.gz well1_S121_L004_R2_001_paired.fastq.gz well1_S121_L005_R2_001_paired.fastq.gz well1_S121_L006_R2_001_paired.fastq.gz -o out
+
+## Same results as before with other transcriptome index
+## [2020-01-20 11:39:36.268] [jointLog] [warning] 0.0224142% of fragments were shorter than the k used to build the index (31).
+## If this fraction is too large, consider re-building the index with a smaller k.
+## The minimum read size found was 25.
+## [2020-01-20 11:39:39.142] [jointLog] [warning] NOTE: Read Lib [( 18048FL-09-01-01_S45_L002_R1_001_paired.fastq.gz, 18048FL-09-01-01_S45_L002_R2_001_paired.fastq.gz ), ( well1_S121_L004_R1_001_paired.fastq.gz, well1_S121_L004_R2_001_paired.fastq.gz ), ( well1_S121_L005_R1_001_paired.fastq.gz, well1_S121_L005_R2_001_paired.fastq.gz ), ( well1_S121_L006_R1_001_paired.fastq.gz, well1_S121_L006_R2_001_paired.fastq.gz )] :
+## Detected a *potential* strand bias > 1% in an unstranded protocol check the file: out/lib_format_counts.json for details
+## [2020-01-20 11:39:36.268] [jointLog] [info] Mapping rate = 54.6803%
+----------------------------------------
+## try with another sample that has more reads from prjct1 plate2 .... sample 7
+18048FL-09-01-07_S51_L002_R1_001_paired.fastq.gz
+18048FL-09-01-07_S51_L002_R2_001_paired.fastq.gz
+well7_S127_L004_R1_001_paired.fastq.gz
+well7_S127_L004_R2_001_paired.fastq.gz
+well7_S127_L005_R1_001_paired.fastq.gz
+well7_S127_L005_R2_001_paired.fastq.gz
+well7_S127_L006_R1_001_paired.fastq.gz
+well7_S127_L006_R2_001_paired.fastq.gz
+
+##filepath to reads
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+##filepath to indexed transcriptome
+/home/jagill/ref_transcriptome_CH/2ch_transcripts_idx
+## job title
+2quant_plate2_sample7.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J quant_plate2_samp7
+
+module load salmon/0.8.2 
+salmon quant -i /home/jagill/ref_transcriptome_CH/2ch_transcripts_idx -l IU -1 18048FL-09-01-07_S51_L002_R1_001_paired.fastq.gz well7_S127_L004_R1_001_paired.fastq.gz well7_S127_L005_R1_001_paired.fastq.gz well7_S127_L006_R1_001_paired.fastq.gz -2 18048FL-09-01-07_S51_L002_R2_001_paired.fastq.gz well7_S127_L004_R2_001_paired.fastq.gz well7_S127_L005_R2_001_paired.fastq.gz well7_S127_L006_R2_001_paired.fastq.gz -o out
+##[2020-01-20 12:13:39.047] [jointLog] [info] Mapping rate = 60.9428%
+----------------------
+## reduce kmer from **31 to 25**. build indexed ref transcriptome from atlantic herring transcriptome 
+##filepath
+/home/jagill/ref_transcriptome_CH
+## job title
+transcript_index3.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/ref_transcriptome_CH
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J transcript_index
+
+module load salmon/0.8.2
+salmon index -t GCF_900700415.1_Ch_v2.0.2_rna.fna -i 3ch_transcripts_idx -k 25
+
+##output and filepath of trinscriptome index
+/home/jagill/ref_transcriptome_CH/3ch_transcripts_idx
+
+## next rerun prjct1 plate2 sample7 with new indexed transcriptome "3ch_transcripts_idx"
+##filepath to reads
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+##filepath to indexed transcriptome
+/home/jagill/ref_transcriptome_CH/3ch_transcripts_idx
+## job title
+3quant_plate2_sample7.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J quant_plate2_samp7
+
+module load salmon/0.8.2 
+salmon quant -i /home/jagill/ref_transcriptome_CH/3ch_transcripts_idx -l A IU -1 18048FL-09-01-07_S51_L002_R1_001_paired.fastq.gz well7_S127_L004_R1_001_paired.fastq.gz well7_S127_L005_R1_001_paired.fastq.gz well7_S127_L006_R1_001_paired.fastq.gz -2 18048FL-09-01-07_S51_L002_R2_001_paired.fastq.gz well7_S127_L004_R2_001_paired.fastq.gz well7_S127_L005_R2_001_paired.fastq.gz well7_S127_L006_R2_001_paired.fastq.gz -o quant_prjct1plate2samp7
+
+## [2020-01-20 13:01:07.397] [jointLog] [info] Mapping rate = 59.0056%
+## filepath
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files/prjct1plate2samp7_2/aux_info/meta_info.json
+    "num_mapped": 11932228,
+    "percent_mapped": 59.00559083609057
+--------------------------------------------------
+#try quantifying unpaired reads
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+##filepath to indexed transcriptome
+/home/jagill/ref_transcriptome_CH/3ch_transcripts_idx
+## job title
+3quant_plate2_sample7_unpaired.sh
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=4G
+#SBATCH -J quant_plate2_samp7
+
+module load salmon/0.8.2 
+salmon quant -i /home/jagill/ref_transcriptome_CH/3ch_transcripts_idx -l IU -1 18048FL-09-01-07_S51_L002_R1_001_unpaired.fastq.gz well7_S127_L004_R1_001_unpaired.fastq.gz well7_S127_L005_R1_001_unpaired.fastq.gz well7_S127_L006_R1_001_unpaired.fastq.gz -2 18048FL-09-01-07_S51_L002_R2_001_unpaired.fastq.gz well7_S127_L004_R2_001_unpaired.fastq.gz well7_S127_L005_R2_001_unpaired.fastq.gz well7_S127_L006_R2_001_unpaired.fastq.gz --writeUnmappedNames  -o prjct1plate2samp7_unpaired
+
+## [2020-01-20 13:20:49.799] [jointLog] [info] Mapping rate = 34.5024%
+----------------------------------------------
+## trying to fix stranded warning in slurm.out
+##rerun job "3quant_plate2_sample7.sh" by editing script to include **-l A** "To allow Salmon to automatically infer the library type"
+## did not increase mapping rate 59.0056%
+##about %10 of mappings are inconsistent
+    "expected_format": "ISF",
+    "compatible_fragment_ratio": 0.9325464615661049,
+    "num_compatible_fragments": 11127357,
+    "num_assigned_fragments": 11932228,
+    "num_consistent_mappings": 19050727,
+    "num_inconsistent_mappings": 1944628,
+    "MSF": 0,
+    "OSF": 52181,
+    "ISF": 19050727,
+    "MSR": 0,
+    "OSR": 1843,
+    "ISR": 158739,
+    "SF": 1346805,
+    "SR": 378000,
+    "MU": 0,
+    "OU": 0,
+    "IU": 0,
+    "U": 0
+--------------------------------------------------
+## trying to fix understand nature of unmapped reads, insert "--writeUnmappedNames" into jobs command "3quant_plate2_sample7.sh"
+use grep -c to count how many m1, m2 and u in the "unmapped_names.txt"
+grep -c m1 unmapped_names.txt
+u = 8,289,971
+m1 = 531,555
+m2 = 205,711
+m12 = 0
+## example of "unmapped_names.txt" file
+E00526:218:H3WFMCCX2:4:1101:30411:16410 u
+E00526:218:H3WFMCCX2:4:1101:8988:16428 u
+E00526:218:H3WFMCCX2:4:1101:12966:16428 u
+E00526:218:H3WFMCCX2:4:1101:14610:16428 u
+E00526:218:H3WFMCCX2:4:1101:21247:16428 u
+E00526:218:H3WFMCCX2:4:1101:22871:16428 u
+E00526:218:H3WFMCCX2:4:1101:23378:16428 m2
+E00526:218:H3WFMCCX2:4:1101:2382:16445 u
+E00526:218:H3WFMCCX2:4:1101:11211:16445 m1
+E00526:218:H3WFMCCX2:4:1101:14986:16445 u
+---------------------------------------------------------
+##rerun salmon quant command adding --seqBias flag
+salmon quant -i /home/jagill/ref_transcriptome_CH/3ch_transcripts_idx -l IU -1 18048FL-09-01-07_S51_L002_R1_001_unpaired.fastq.gz well7_S127_L004_R1_001_unpaired.fastq.gz well7_S127_L005_R1_001_unpaired.fastq.gz well7_S127_L006_R1_001_unpaired.fastq.gz -2 18048FL-09-01-07_S51_L002_R2_001_unpaired.fastq.gz well7_S127_L004_R2_001_unpaired.fastq.gz well7_S127_L005_R2_001_unpaired.fastq.gz well7_S127_L006_R2_001_unpaired.fastq.gz --writeUnmappedNames  --seqBias -o prjct1plate2samp7_unpaired
+---------------------------------------------------- 
+## make salmon index from GCF_900700415.1_Ch_v2.0.2_gnomon_rna.fna.gz
+## filepath
+/home/jagill/ref_transcriptome_CH/GCF_900700415.1_Ch_v2.0.2_gnomon_rna.fna.gz
+## job title
+transcript_gnomon_rna_index.sh
+
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/ref_transcriptome_CH
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 4
+#SBATCH --mem=4G
+#SBATCH -J transcript_index
+
+module load salmon/0.14.1 
+salmon index -t GCF_900700415.1_Ch_v2.0.2_gnomon_rna.fna -i GCF_900700415.1_Ch_v2.0.2_gnomon_rna_fna_idx -k 25
+
+##output and filepath of quant job
+/home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+nano quant_samp1_gnomon_index.sh
+##run count command in salmon on
+#!/bin/bash
+#
+#SBATCH -D /home/jagill/results/oil18/prjct1_plate2_4lanes/trim_files
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=10G
+#SBATCH -J quant_plate2_samp1
+
+module load salmon/0.14.1
+salmon quant -i /home/jagill/ref_transcriptome_CH/GCF_900700415.1_Ch_v2.0.2_gnomon_rna_fna_idx -l A IU -1 well1_S121_L004_R1_001_paired.fastq -2 well1_S121_L004_R2_001_paired.fastq --validateMappings --writeUnmappedNames  --seqBias -o quant_sample1_gnomon
+
+## [2020-02-05 13:03:58.616] [jointLog] [info] Mapping rate = 52.6824%
+## shitty shitty [2020-02-04 18:59:56.434] [jointLog] [info] Mapping rate = 54.0194%  
+## in the future allow dovetail reads --allowDovetail                                                                                                       
+
+AAFFAFJ-FJ-FFFJJJJJJJJJJJJJFFFJJFJFJJJJJJJJJJJJJJJJJJJJJ<JJJJJJJF<FJJJAJAJJFJJJJJJJJJJJJJJJJJJJJJJJJJFJJJJJJJJJJJJFJJJJJJJJJJJJJJFJJJJFJFJJJAFJF<<AJF<
+@E00526:218:H3WFMCCX2:4:1101:26078:2821 2:N:0:ATGATTGA
+ATGCATTTCAGAATCCAGTTGAAATGACAACCAATGAGAAAACGTAAAAAATAAAAAGAAAGAAAAGGACACCCTAGGTGGTTTTTTTACCCCCTGGTTAACAATGATCCACTTAAAACACTCTAAATGAAATCCTGGACAAACATGTCC
++
+<AAF-AFF<JJJ<FFJFJJJJJJJJJJJJJJJJJJJFJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJFJJJJFJJJJJJJJJJJFJJJJFJJJJJJJJJJJJJJJJJ7<FJJJJJJJJ7JJJJJ--AFFJJJJJJJJJJJJJJ
+@E00526:218:H3WFMCCX2:4:1101:5406:2838 2:N:0:ATGATTGA
+GGTGGGGGTGTCTGTGAGGTAGATAGAGGAATTGGCATCGCTGGCGCTCATCTTGGTTTGCGCGCCCTGCAGGGCAGGGAAGAACGTGGAGTGCAGCAGCGCTGGTTTGGGGCAGTCGATCCGGGGAGCCACGTCTCTGGTCATCCCGAAG
++
+AAAAFAJJFFJJFJJ<JJJ-FJFJJFJJJJJJJ<JJJJJJJFJJJJJJJJJJJJJJJJJ-JFJJJJJAJJJJJJJFJJJFJAJJJJAJFJFJJJJJJ7JAJFJJ-FAJJFJF-7J7FJAJFJJJJJ-AAJJ--<7<<-7FF-<FAJ7F-AJ
+@E00526:218:H3WFMCCX2:4:1101:12368:2838 2:N:0:ATGATTGA
+GTTTCGTTTTTAAATGTCATCCCCTTCATTAGGAGAGACAAGGCTACAGCAGGATACCAAACCTGCTATTTCAACTGTGACCATCCGGCCTCCTCAGAATTGTTGCCTTTGGTGTGTTTCCTCTTAAGTGCTATTTTTTGCCCCCGCTGG
+
+E00526:218:H3WFMCCX2:4:1103:3275:62470 u
+E00526:218:H3WFMCCX2:4:1103:3599:62470 u
+
+grep -w -A 2 -f test.txt test.fa --no-group-separator doesn't work if there are special characters in the header, which is common. Use grep -w -A 2 -Ff test.txt test.fa --no-group-separator instead. -F searchers for a fixed string.
+
+For anyone that only has one sequence per header in their fasta file, use 
+grep -w -A 1 -f test.txt test.fa --no-group-separator instead.
+
+------------------------------------------------------------
+## run Salmon aligner on 2020 pacbio isoseq CCS fastq file
+## job title
+2020pacbio_trnscrptm_salmongnomon_map.sh
+
+##output and filepath of quant job
+/home/jagill/ref_transcriptome_CH
+
+##run count command in salmon on
+
+#!/bin/bash
+#
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=10G
+#SBATCH -J 2020pacbio_trnscrptm_salmongnomon_map
+
+module load salmon/0.14.1
+salmon quant -i /home/jagill/ref_transcriptome_CH/GCF_900700415.1_Ch_v2.0.2_gnomon_rna_fna_idx -l A -r /home/jagill/CP_ref_transcriptome/rawdata/2019/ccs_reads/PB413_7plexIsoSeq_Lib/r64069_20191126_210526/B1/0000001492/outputs/m64069_191127_213023.Q20.fastq --validateMappings --writeUnmappedNames  --seqBias -o /home/jagill/ref_transcriptome_CH/2020pacbio_trnscrptm_salmongnomon_quant
+
+##[2020-02-07 16:14:50.450] [jointLog] [info] Mapping rate = 62.3159%
+-------------------------------------
+## next map pacbio 2018 hf.fq file to salmon
+## job title
+2018pacbio_trnscrptm_salmongnomon_map.sh
+
+##output and filepath of quant job
+/home/jagill/ref_transcriptome_CH
+
+##run count command in salmon on
+
+#!/bin/bash
+#
+#SBATCH -t 24:00:00
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -p high
+#SBATCH -c 8
+#SBATCH --mem=10G
+#SBATCH -J 2018pacbio_trnscrptm_salmongnomon_map
+
+module load salmon/0.14.1
+salmon quant -i /home/jagill/ref_transcriptome_CH/GCF_900700415.1_Ch_v2.0.2_gnomon_rna_fna_idx -l A -r /group/awhitehegrp/rnaseq/herring/all.hq.fastq --validateMappings --writeUnmappedNames  --seqBias -o /home/jagill/ref_transcriptome_CH/2018pacbio_trnscrptm_salmongnomon_quant
+
+## [2020-02-07 16:32:14.962] [jointLog] [info] Mapping rate = 51.0384%
+
+---------------------------------------------------------
