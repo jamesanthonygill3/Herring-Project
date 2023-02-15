@@ -1,0 +1,658 @@
+---
+title: "splicing_annotations"
+author: "Tony"
+date: "3/24/2020"
+output: html_document
+---
+
+This document is to help with splicing the gff3 files that resulted from annotating a transcriptome. The general outline is as follow
+1) Read in all the files
+2) splice the files so I have a transcript to geneID for each database I annotated to
+3) Combine all the files 
+
+Additionally,
+4) graph my transcript lengths
+
+# i: Load libraries
+
+```{r message=FALSE}
+library(tidyverse)
+```
+setwd("/Volumes/herring2/herring_project/ph_transcriptome/isoseq2020/ph_annotation")
+
+# 1: Reading in all files
+
+```{r message=FALSE}
+orthoDB <- read_tsv("herring.fasta.x.OrthoDB.best.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+pfam <- read_tsv("herring.fasta.x.pfam-A.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+atlantic_herring <- read_tsv("clupea_annotation.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+rfam <- read_tsv("herring.fasta.x.rfam.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+uniprot <- read_tsv("herring.fasta.x.sprot.best.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+
+```
+# 2: Splice files
+## 2a: Separate out the "attributes" column by ";"
+```{r message=FALSE}
+
+orthoDB1 <- separate(orthoDB, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+atlantic_herring1 <- separate(atlantic_herring, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+pfam1 <- separate(pfam, into = c("ID", "Parent","Name", "Target", "Note", "Accuracy", "env_coords", "Dbxref"), col = "attributes", sep = ";", remove = TRUE)
+rfam1 <- separate(rfam, into = c("ID", "Name", "Target", "Note", "Dbxref", "trunc", "bitscore"), col = "attributes", sep = ";", remove = TRUE)
+uniprot1 <- separate(uniprot, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+```
+## 2b: Isolate gene names
+```{r}
+orthoDB1$gene_name_orthoDB <- gsub(pattern = "Name=","", orthoDB1$Name)
+atlantic_herring1$gene_name_atlanticherring <- gsub(pattern = "Name=","", atlantic_herring1$Name)
+pfam1$gene_name_pfam <- gsub(pattern = "Name=","", pfam1$Name)
+rfam1$gene_name_rfam <- gsub(pattern = "Name=","", rfam1$Name)
+uniprot1$gene_name_uniprot <- gsub(pattern = "Name=","", uniprot1$Name)
+
+```
+## remove rows from annotation databases with missing values in e_value column
+##this replaced all "." across all columns with NAs
+tester <- atlantic_herring1 %>% replace(.==".", NA)
+##replace "." with NA only in e_value column
+tester2 <- atlantic_herring1 %>% mutate(e_value = na_if(e_value, '.'))
+##delete NA rows in e_value column 
+tester3 <- tester2 %>% na.omit(e_value) 
+## arrange by e_value column within seq_id column (not descening but ascending order) 
+##### atlantic_herring annotation
+atlantic_herring2 <- tester3 %>%
+  arrange(seq_id, (e_value))
+##### orthoDB annotation
+orthoDB2 <- orthoDB1 %>%
+  arrange(seq_id, (e_value))
+##### pfam annotation
+pfam2 <- pfam1 %>%
+  arrange(seq_id, (e_value))
+##### rfam annotation
+rfam2 <- rfam1 %>%
+  arrange(seq_id, (e_value))
+##### uniprot annotation
+uniprot2 <- uniprot1 %>%
+  arrange(seq_id, (e_value))
+## calculate longest mapped read
+##### atlantic herring annotation
+atlantic_herring3 <- atlantic_herring2 %>%
+  mutate(diff = end - start)
+##### orthoDB annotation
+orthoDB3 <- orthoDB2 %>%
+  mutate(diff = end - start)
+##### pfam annotation
+pfam3 <- pfam2 %>%
+  mutate(diff = end - start)
+##### rfam annotation
+rfam3 <- rfam2 %>%
+  mutate(diff = end - start)
+##### uniprot annotation
+uniprot3 <- uniprot2 %>%
+  mutate(diff = end - start)
+## arrange top e values and longest annotation at the top
+##### atlantic herring annotation
+atlantic_herring4 <- atlantic_herring3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### orthoDB annotation
+orthoDB4 <- orthoDB3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### pfam annotation
+pfam4 <- pfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### rfam annotation
+rfam4 <- rfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### uniprot annotation
+uniprot4 <- uniprot3 %>%
+  arrange(seq_id, e_value, desc(diff))
+## plot length against e_value
+ggplot(pfam4, aes(y=diff, x=e_value))+
+  geom_point()
+
+## 2c: Make transcript to gene name tables for each database
+```{r}
+## atlantic herring annotation database
+tx2name_ah <- tibble(Transcript = atlantic_herring4$seq_id,
+                     gene_name_ah= atlantic_herring4$Name)  #use Name instead of gene_name
+##### only retain top transcript from seq_id column 
+tx2name_ah <- tx2name_ah[!duplicated(tx2name_ah$Transcript),]
+## orthoDB annotation database
+tx2name_orthoDB <- tibble(Transcript=orthoDB4$seq_id,
+                          gene_name_orthoDB=orthoDB4$gene_name_orthoDB)
+##### only retain top transcript from seq_id column 
+tx2name_orthoDB <- tx2name_orthoDB[!duplicated(tx2name_orthoDB$Transcript),]
+## pfam annotation database
+tx2name_pfam <- tibble(Transcript=pfam4$seq_id,
+                          gene_name_pfam=pfam4$gene_name_pfam)
+##### only retain top transcript from seq_id column 
+tx2name_pfam <- tx2name_pfam[!duplicated(tx2name_pfam$Transcript),]
+## rfam annotation database
+tx2name_rfam <- tibble(Transcript=rfam4$seq_id,
+                          gene_name_rfam=rfam4$gene_name_rfam)
+##### only retain top transcript from seq_id column 
+tx2name_rfam <- tx2name_rfam[!duplicated(tx2name_rfam$Transcript),]
+## uniprot annotation database
+tx2name_uniprot <- tibble(Transcript=uniprot4$seq_id,
+                          gene_name_uniprot=uniprot4$gene_name_uniprot)
+##### only retain top transcript from seq_id column 
+tx2name_uniprot <- tx2name_uniprot[!duplicated(tx2name_uniprot$Transcript),]
+
+```
+
+# 3: Combine files
+## 3a: Read in names of transcripts from transcriptome
+```{r}
+txome_pacherring <- read_delim("/Volumes/HerringProjectTG/PH_ref_transcriptome/herring_isoseq/isoseq2020_header.csv", delim = " ", col_names = FALSE)
+txome_pacherring$tx_name <- gsub(pattern = ">","",txome_pacherring$X1)
+
+tx_names <- tibble(Transcript = txome_pacherring$tx_name)
+
+## tx_names first row has id,bp and needs to be removed
+tx_names=tx_names[ -c(1),]
+## replace all "/" with "_" (transcript/0 -> transcript_0)
+gsub("[/]", "[_]", tx_names)
+## replace all "_" with "/" (transcript_0 -> transcript/0)
+gsub("[_]", "[/]", tx2gene$Transcript)
+tx_names$Transcript <- gsub("/", "_", tx_names$Transcript)
+## merging is case-sensitive so change tx_names file to match the tx2name files
+tx_names$Transcript <- gsub("transcript", "Transcript", tx_names$Transcript)
+```
+## 3b: Merge files
+```{r}
+merged <- left_join(tx_names,tx2name_ah, by="Transcript")
+merged <- left_join(merged, tx2name_orthoDB, by="Transcript")
+merged <- left_join(merged, tx2name_pfam, by="Transcript")
+merged <- left_join(merged, tx2name_rfam, by="Transcript")
+merged_final <- left_join(merged, tx2name_uniprot, by="Transcript")
+
+test <- merged_final$Transcript[duplicated(merged_final$Transcript)]
+
+```
+# reorder columns before heirarchical merging
+# 1. atlantic herring
+# 2. Uniprot
+# 3. Orthodb
+# 4. Pfam
+# 5. Rfam
+test1 <- merged_final[c("Transcript", "gene_name_ah", "gene_name_uniprot", "gene_name_orthoDB", "gene_name_pfam", "gene_name_rfam")]
+# copy and rename file
+merged_final <- test1
+## save objects
+save(merged_final, file = "merged_final.RData")
+save(tx_names, file = "tx_names.RData")
+save(tx2name_ah, file = "tx2name_ah.RData")
+save(atlantic_herring4, file = "atlantic_herring4.RData")
+save(orthoDB4, file = "orthoDB4.RData")
+save(pfam4, file = "pfam4.RData")
+save(rfam4, file = "rfam4.RData")
+save(uniprot4, file = "uniprot4.RData")
+load("merged_final.RData")
+# heirarchically merge "merged_final" into a single column
+pacherring_merged_annotation <- sample_n(merged_final, 200)
+new_col <- c()
+for (i in 1:nrow(merged_final)) {
+  #print(i)
+  #print(merged_final[i,2])
+  if(is.na(merged_final[i,2]) == FALSE){
+    new_col[i] <- merged_final[i,2]
+  } else if(is.na(merged_final[i,3]) == FALSE){
+    new_col[i] <- merged_final[i,3]
+  } else if(is.na(merged_final[i,4]) == FALSE){
+    new_col[i] <- merged_final[i,4]
+  } else if(is.na(merged_final[i,5]) == FALSE){
+    new_col[i] <- merged_final[i,5]
+  } else if(is.na(merged_final[i,6]) == FALSE){
+    new_col[i] <- merged_final[i,6]
+  } else {
+    new_col[i] <- paste0(merged_final[i,1],"_gene")
+  }
+}
+new_tibble <- tibble(Transcript = merged_final$Transcript,
+                     best_gene = new_col)
+save(new_tibble, file = "new_tibble.RData")
+## find and replace all "Target=" and "Name="
+new_tibble$best_gene <- gsub("Name=", "", new_tibble$best_gene)
+new_tibble$best_gene <- gsub("Target=", "", new_tibble$best_gene)
+
+# export as a csv file
+write.csv(new_tibble,'pacherring_merged_annotation.csv')
+write.csv(merged_final, 'merged_annotations.csv')
+
+# count number of unique gene ids
+length(unique(new_tibble$best_gene))
+
+# count number of unique gene ids in "pacherring_merged_annotation2" = 54,346
+length(unique(pacherring_merged_annotation2$best_gene))
+
+# count number of unique gene ids in "ah_genes" = 82,965
+length(unique(ah_genes$gene_name_ah))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_uniprot" column = 21,290
+length(unique(merged_final$gene_name_uniprot))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_orthoDB" column = 24,167
+length(unique(merged_final$gene_name_orthoDB))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_pfam" column = 4,835
+length(unique(merged_final$gene_name_pfam))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_rfam" column = 111
+length(unique(merged_final$gene_name_rfam))
+
+# find out how many transcripts were have annotations for different databases in the "merged_final" df = 164,540 rows of ah_genes before NA
+# 1. sort by "gene_name_ah"
+ah_genes <- merged_final %>% arrange(gene_name_ah)
+# sort "pacherring_merged_annotation2" by "best_gene"
+unannoted_tx <- pacherring_merged_annotation2 %>% arrange(best_gene) unnanoted transcripts begin at row 112941 - end at row 128569 = 15,628 unannotated transcripts
+# sort "merged_final" by "gene_name_uniprot"
+uniprot_genes <- merged_final %>% arrange(gene_name_uniprot) unnanoted transcripts begin at row 112941 - end at row 128569 = 15,628 unannotated transcripts
+
+
+# 4: Graphing transcript lengths
+
+```{r}
+#Read in transcriptome
+##txome <- read_delim("dammit/tx_headers.txt", delim = " ", col_names = FALSE)
+txome_pacherring <- read_delim("/Volumes/herring2/herring_project/ph_transcriptome/isoseq2020/isoseq2020_header.csv", delim = " ", col_names = FALSE)
+#Remove 'len='
+txome_pacherring$X4 <- as.numeric(gsub(pattern = "len=","", txome$X2))
+
+#Find mean length
+mean(txome$X4) #559.322
+median(txome$X4) # 332
+max(txome$X4) #25,438
+
+#Graph histogram
+ggplot(txome, aes(x=X4)) +
+  geom_histogram(binwidth = 25)+
+  xlim(0,1000)
+```
+
+
+
+## trying to remove rows with "." from e_value column in atlantic_herring1 dataframe. 
+tester <- atlantic_herring1 %>% 
+  filter(!str_detect(e_value, '.'))
+tester <- filter(!str_detect(atlantic_herring1$e_value, '.'))
+tester <- atlantic_herring1 %>% subset(e_value==.)
+
+##this replaced all "." across all columns with NAs
+tester <- atlantic_herring1 %>% replace(.==".", NA)
+##replace "." with NA only in e_value column
+tester2 <- atlantic_herring1 %>% mutate(e_value = na_if(e_value, '.'))
+##delete NA rows in e_value column 
+tester3 <- tester2 %>% na.omit(e_value) 
+## arrange by e_value column within seq_id column (not descening but ascending order) 
+##### atlantic_herring annotation
+atlantic_herring2 <- tester3 %>%
+  arrange(seq_id, (e_value))
+##### orthoDB annotation
+orthoDB2 <- orthoDB1 %>%
+  arrange(seq_id, (e_value))
+##### pfam annotation
+pfam2 <- pfam1 %>%
+  arrange(seq_id, (e_value))
+##### rfam annotation
+rfam2 <- rfam1 %>%
+  arrange(seq_id, (e_value))
+##### uniprot annotation
+uniprot2 <- uniprot1 %>%
+  arrange(seq_id, (e_value))
+## calculate longest mapped read
+##### atlantic herring annotation
+atlantic_herring3 <- atlantic_herring2 %>%
+  mutate(diff = end - start)
+##### orthoDB annotation
+orthoDB3 <- orthoDB2 %>%
+  mutate(diff = end - start)
+##### pfam annotation
+pfam3 <- pfam2 %>%
+  mutate(diff = end - start)
+##### rfam annotation
+rfam3 <- rfam2 %>%
+  mutate(diff = end - start)
+##### uniprot annotation
+uniprot3 <- uniprot2 %>%
+  mutate(diff = end - start)
+## arrange top e values and longest annotation at the top
+##### atlantic herring annotation
+atlantic_herring4 <- atlantic_herring3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### orthoDB annotation
+orthoDB4 <- orthoDB3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### pfam annotation
+pfam4 <- pfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### rfam annotation
+rfam4 <- rfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### uniprot annotation
+uniprot4 <- uniprot3 %>%
+  arrange(seq_id, e_value, desc(diff))
+## plot length against e_value
+ggplot(pfam4, aes(y=diff, x=e_value))+
+  geom_point()
+
+## only retain top transcript from seq_id column 
+tx2name_ah <- tx2name_ah[!duplicated(tx2name_ah$Transcript),]
+
+# 1: Reading in all files
+orthoDB <- read_tsv("herring.fasta.x.OrthoDB.best.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+pfam <- read_tsv("herring.fasta.x.pfam-A.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+atlantic_herring <- read_tsv("clupea_annotation.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+rfam <- read_tsv("herring.fasta.x.rfam.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+uniprot <- read_tsv("herring.fasta.x.sprot.best.gff3", skip = 1,
+                     col_names = c("seq_id",
+                                   "source",
+                                   "type",
+                                   "start",
+                                   "end",
+                                   "e_value",
+                                   "strand",
+                                   "phase",
+                                   "attributes"))
+
+# 2: Splice files
+## 2a: Separate out the "attributes" column by ";"
+orthoDB1 <- separate(orthoDB, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+atlantic_herring1 <- separate(atlantic_herring, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+pfam1 <- separate(pfam, into = c("ID", "Parent","Name", "Target", "Note", "Accuracy", "env_coords", "Dbxref"), col = "attributes", sep = ";", remove = TRUE)
+rfam1 <- separate(rfam, into = c("ID", "Name", "Target", "Note", "Dbxref", "trunc", "bitscore"), col = "attributes", sep = ";", remove = TRUE)
+uniprot1 <- separate(uniprot, into = c("ID", "Name", "Target", "database"), col = "attributes", sep = ";", remove = TRUE)
+
+## 2b: Isolate gene names
+orthoDB1$gene_name_orthoDB <- gsub(pattern = "Name=","", orthoDB1$Name)
+atlantic_herring1$gene_name_atlanticherring <- gsub(pattern = "Name=","", atlantic_herring1$Name)
+pfam1$gene_name_pfam <- gsub(pattern = "Name=","", pfam1$Name)
+rfam1$gene_name_rfam <- gsub(pattern = "Name=","", rfam1$Name)
+uniprot1$gene_name_uniprot <- gsub(pattern = "Name=","", uniprot1$Name)
+
+## remove rows from annotation databases with missing values in e_value column
+##this replaced all "." across all columns with NAs
+tester <- atlantic_herring1 %>% replace(.==".", NA)
+##replace "." with NA only in e_value column
+tester2 <- atlantic_herring1 %>% mutate(e_value = na_if(e_value, '.'))
+##delete NA rows in e_value column 
+tester3 <- tester2 %>% na.omit(e_value) 
+## arrange by e_value column within seq_id column (not descening but ascending order) 
+##### atlantic_herring annotation
+atlantic_herring2 <- tester3 %>%
+  arrange(seq_id, (e_value))
+##### orthoDB annotation
+orthoDB2 <- orthoDB1 %>%
+  arrange(seq_id, (e_value))
+##### pfam annotation
+pfam2 <- pfam1 %>%
+  arrange(seq_id, (e_value))
+##### rfam annotation
+rfam2 <- rfam1 %>%
+  arrange(seq_id, (e_value))
+##### uniprot annotation
+uniprot2 <- uniprot1 %>%
+  arrange(seq_id, (e_value))
+## calculate longest mapped read
+##### atlantic herring annotation
+atlantic_herring3 <- atlantic_herring2 %>%
+  mutate(diff = end - start)
+##### orthoDB annotation
+orthoDB3 <- orthoDB2 %>%
+  mutate(diff = end - start)
+##### pfam annotation
+pfam3 <- pfam2 %>%
+  mutate(diff = end - start)
+##### rfam annotation
+rfam3 <- rfam2 %>%
+  mutate(diff = end - start)
+##### uniprot annotation
+uniprot3 <- uniprot2 %>%
+  mutate(diff = end - start)
+## arrange top e values and longest annotation at the top
+##### atlantic herring annotation
+atlantic_herring4 <- atlantic_herring3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### orthoDB annotation
+orthoDB4 <- orthoDB3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### pfam annotation
+pfam4 <- pfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### rfam annotation
+rfam4 <- rfam3 %>%
+  arrange(seq_id, e_value, desc(diff))
+##### uniprot annotation
+uniprot4 <- uniprot3 %>%
+  arrange(seq_id, e_value, desc(diff))
+## plot length against e_value
+ggplot(pfam4, aes(y=diff, x=e_value))+
+  geom_point()
+
+## 2c: Make transcript to gene name tables for each database
+## atlantic herring annotation database
+tx2name_ah <- tibble(Transcript = atlantic_herring4$seq_id,
+                     gene_name_ah= atlantic_herring4$gene_name_atlanticherring)
+##### only retain top transcript from seq_id column 
+tx2name_ah <- tx2name_ah[!duplicated(tx2name_ah$Transcript),]
+## orthoDB annotation database
+tx2name_orthoDB <- tibble(Transcript=orthoDB4$seq_id,
+                          gene_name_orthoDB=orthoDB4$gene_name_orthoDB)
+##### only retain top transcript from seq_id column 
+tx2name_orthoDB <- tx2name_orthoDB[!duplicated(tx2name_orthoDB$Transcript),]
+## pfam annotation database
+tx2name_pfam <- tibble(Transcript=pfam4$seq_id,
+                          gene_name_pfam=pfam4$gene_name_pfam)
+##### only retain top transcript from seq_id column 
+tx2name_pfam <- tx2name_pfam[!duplicated(tx2name_pfam$Transcript),]
+## rfam annotation database
+tx2name_rfam <- tibble(Transcript=rfam4$seq_id,
+                          gene_name_rfam=rfam4$gene_name_rfam)
+##### only retain top transcript from seq_id column 
+tx2name_rfam <- tx2name_rfam[!duplicated(tx2name_rfam$Transcript),]
+## uniprot annotation database
+tx2name_uniprot <- tibble(Transcript=uniprot4$seq_id,
+                          gene_name_uniprot=uniprot4$gene_name_uniprot)
+##### only retain top transcript from seq_id column 
+tx2name_uniprot <- tx2name_uniprot[!duplicated(tx2name_uniprot$Transcript),]
+
+# 3: Combine files
+## 3a: Read in names of transcripts from transcriptome
+txome_pacherring <- read_delim("/Volumes/herring2/herring_project/ph_transcriptome/isoseq2020/isoseq2020_header.csv", delim = " ", col_names = FALSE)
+txome_pacherring$tx_name <- gsub(pattern = ">","",txome_pacherring$X1)
+
+tx_names <- tibble(Transcript = txome_pacherring$tx_name)
+
+## tx_names first row has id,bp and needs to be removed
+tx_names=tx_names[ -c(1),]
+## replace all "_" with "/" (transcript_0 -> transcript/0)
+tx_names$Transcript <- gsub("/", "_", tx_names$Transcript)
+## merging is case-sensitive so change tx_names file to match the tx2name files
+tx_names$Transcript <- gsub("transcript", "Transcript", tx_names$Transcript)
+
+# 3b Merge files
+merged <- left_join(tx_names,tx2name_ah, by="Transcript")
+merged <- left_join(merged, tx2name_orthoDB, by="Transcript")
+merged <- left_join(merged, tx2name_pfam, by="Transcript")
+merged <- left_join(merged, tx2name_rfam, by="Transcript")
+merged_final <- left_join(merged, tx2name_uniprot, by="Transcript")
+
+test <- merged_final$Transcript[duplicated(merged_final$Transcript)]
+
+# reorder columns before heirarchical merging
+# 1. atlantic herring
+# 2. Uniprot
+# 3. Orthodb
+# 4. Pfam
+# 5. Rfam
+test1 <- merged_final[c("Transcript", "gene_name_ah", "gene_name_uniprot", "gene_name_orthoDB", "gene_name_pfam", "gene_name_rfam")]
+# copy and rename file
+merged_final <- test1
+## save objects
+save(merged_final, file = "merged_final2.RData")
+save(tx_names, file = "tx_names.RData")
+save(tx2name_ah, file = "tx2name_ah.RData")
+save(atlantic_herring4, file = "atlantic_herring4.RData")
+save(orthoDB4, file = "orthoDB4.RData")
+save(pfam4, file = "pfam4.RData")
+save(rfam4, file = "rfam4.RData")
+save(uniprot4, file = "uniprot4.RData")
+load("merged_final.RData")
+# heirarchically merge "merged_final" into a single column
+pacherring_merged_annotation <- sample_n(merged_final)
+new_col <- c()
+for (i in 1:nrow(merged_final)) {
+  #print(i)
+  #print(merged_final[i,2])
+  if(is.na(merged_final[i,2]) == FALSE){
+    new_col[i] <- merged_final[i,2]
+  } else if(is.na(merged_final[i,3]) == FALSE){
+    new_col[i] <- merged_final[i,3]
+  } else if(is.na(merged_final[i,4]) == FALSE){
+    new_col[i] <- merged_final[i,4]
+  } else if(is.na(merged_final[i,5]) == FALSE){
+    new_col[i] <- merged_final[i,5]
+  } else if(is.na(merged_final[i,6]) == FALSE){
+    new_col[i] <- merged_final[i,6]
+  } else {
+    new_col[i] <- paste0(merged_final[i,1],"_gene")
+  }
+}
+new_tibble <- tibble(Transcript = merged_final$Transcript,
+                     best_gene = new_col)
+save(new_tibble, file = "new_tibble.RData")
+
+# export as a csv file
+write.csv(new_tibble,'pacherring_merged_annotation2.csv')
+write.csv(merged_final, 'merged_annotations2.csv')
+
+# count number of unique gene ids in "pacherring_merged_annotationPG = 17,137
+length(unique(pacherring_merged_annotationPG$X.1))
+# count number of unique gene ids in "pacherring_merged_ch" = 22,670 or 17,136
+length(unique(pacherring_merged_annotation_ch$V3))
+length(unique(pacherring_merged_annotation_ch$V4))
+
+# count number of unique genes in "pacherring_merged_annotation_uniprot" = 9,888
+length(unique(pacherring_merged_annotation_uniprot$V2))
+# count number of unique genes in "pacherring_merged_annotation_orthodb" = 651
+length(unique(pacherring_merged_annotation_orthodb$V3)) 
+# count number of unique genes in "pacherring_merged_annotation_pfam/rfam" = 230
+length(unique(pacherring_merged_annotation_pfam$V3)) 
+
+
+
+
+
+# count number of unique gene ids in "pacherring_merged_annotation2" = 54,346
+length(unique(pacherring_merged_annotation2$best_gene))
+
+# count number of unique gene ids in "ah_genes" = 82,965
+length(unique(ah_genes$gene_name_ah))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_uniprot" column = 21,290
+length(unique(merged_final$gene_name_uniprot))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_orthoDB" column = 24,167
+length(unique(merged_final$gene_name_orthoDB))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_pfam" column = 4,835
+length(unique(merged_final$gene_name_pfam))
+
+# count numbre of unique genes ids in "merged_final" in "gene_name_rfam" column = 111
+length(unique(merged_final$gene_name_rfam))
+
+# find out how many transcripts that have annotations for different databases in the "merged_final" df = 164,540 rows of ah_genes before NA
+# 1. sort by "gene_name_ah"
+ah_genes <- merged_final %>% arrange(gene_name_ah)
+# sort "pacherring_merged_annotation2" by column "best_gene"
+unannoted_tx <- pacherring_merged_annotation2 %>% arrange(best_gene) unnanoted transcripts begin at row 112941 - end at row 128569 = 15,628 unannotated transcripts
+
+
+
