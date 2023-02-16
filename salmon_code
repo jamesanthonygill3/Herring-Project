@@ -1,0 +1,22 @@
+#example of salmon quant file generation for a single sample
+{
+    "salmon_version": "1.3.0",
+    "index": "/home/jagill/CP_ref_transcriptome/pacherring4_pcbio_idx",
+    "libType": "IU",
+    "mates1": [
+        "93_S114_L004_R1_001_paired.fastq.gz",
+        "93_S110_L006_R1_001_paired.fastq.gz",
+        "93_S110_L007_R1_001_paired.fastq.gz",
+        "93_S110_L008_R1_001_paired.fastq.gz"
+    ],
+    "mates2": [
+        "93_S114_L004_R2_001_paired.fastq.gz",
+        "93_S110_L006_R2_001_paired.fastq.gz",
+        "93_S110_L007_R2_001_paired.fastq.gz",
+        "93_S110_L008_R2_001_paired.fastq.gz"
+    ],
+    "allowDovetail": [],
+    "validateMappings": [],
+    "seqBias": [],
+    "output": "/home/jagill/results/oil18/prjct1_plate4/quant4/CP-D6-H4A",
+    "auxDir": "aux_info"
